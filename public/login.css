@@ -1,0 +1,85 @@
+/* login.css */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: #0b6028;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.login-container {
+    background-color: #0d8c38;
+    padding: 40px;
+    border-radius: 15px;
+    border: 3px solid #c0c0c0;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+h2 {
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px #000;
+}
+
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* paddingを含めて幅を100%にする */
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    color: black;
+    background-color: #f0ad4e;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #ec971f;
+}
+
+.error-message {
+    margin-top: 15px;
+    color: #ffcdd2;
+    font-weight: bold;
+    min-height: 20px;
+}
+
+.login-link {
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.login-link a {
+    color: #ffd700;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}

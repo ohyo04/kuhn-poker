@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クーン・ポーカー (AKQ) - 機能拡張版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-tab="game">ゲーム</div>
+            <div class="nav-tab" data-tab="stats">統計/リプレイ</div>
+            <div class="nav-tab" data-tab="simulator">AIシミュレーター</div>
+        </div>
+
+        <main id="content-area">
+            <div id="lobby-screen" class="content-screen active" style="padding-top: 100px; text-align: center;">
+                <h1>クーンポーカー・オンライン</h1>
+                <button id="find-game-button" style="padding: 15px 40px; font-size: 20px; cursor: pointer;">対戦相手を探す</button>
+                <p id="status-message" style="margin-top: 20px; font-size: 16px; min-height: 24px;"></p>
+            </div>
+            
+            <div id="main-game-container" class="content-screen">
+                <div id="game-info">
+                    <div id="player-ai-controls" class="ai-controls">
+                        <label for="player-ai-type">あなた:</label>
+                        <select id="player-ai-type">
+                            <option value="human" selected>人間</option>
+                            <option value="kensjitsu">堅実</option>
+                            <option value="kiai">気合太郎</option>
+                            <option value="mitaiman">フロップ見たいマン</option>
+                            <option value="tightaggressive">タイトアグレ</option>
+                            <option value="gto">GTO AI</option>
+                            <option value="custom">カスタムAI</option>
+                        </select>
+                        <button id="open-player-settings-button" class="settings-button">設定</button>
+                    </div>
+                    <div id="scoreboard">
+                        <strong>戦績</strong> | 
+                        <span id="player-wins">0</span>勝 - <span id="opponent-wins">0</span>敗 |
+                        EV: <span id="player-ev">0.00</span>
+                    </div>
+                    <div id="opponent-ai-controls" class="ai-controls">
+                        <label for="opponent-ai-type">相手:</label>
+                        <select id="opponent-ai-type">
+                            <option value="kensjitsu" selected>堅実</option>
+                            <option value="kiai">気合太郎</option>
+                            <option value="mitaiman">フロップ見たいマン</option>
+                            <option value="tightaggressive">タイトアグレ</option>
+                            <option value="gto">GTO AI</option>
+                            <option value="custom">カスタムAI</option>
+                        </select>
+                        <button id="open-opponent-settings-button" class="settings-button">設定</button>
+                    </div>
+                </div>
+
+                <div id="game-table">
+                    <h2>相手 (CPU)</h2>
+                    <div class="info-area">チップ: <span id="opponent-chips">1</span></div>
+                    <div id="opponent-hand" class="card-area"></div>
+                    <div id="pot-area">
+                        <h3>ポット</h3>
+                        <span id="pot-amount">0</span>
+                    </div>
+                    <h2>あなた</h2>
+                    <div class="info-area">チップ: <span id="player-chips">1</span></div>
+                    <div id="player-hand" class="card-area"></div>
+                    <div id="message-area">新しいゲームを開始します。</div>
+                    <div id="actions">
+                        <button id="bet-button">ベット (1)</button>
+                        <button id="check-button">チェック</button>
+                        <button id="call-button">コール (1)</button>
+                        <button id="fold-button">フォールド</button>
+                        <button id="new-game-button" class="hidden">次のゲームへ</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stats-hub-screen" class="content-screen">
+                <h2>統計＆リプレイハブ</h2>
+            
+                <div class="stats-filter-container">
+                    <div class="filter-group">
+                        <label for="filter-opponent-ai">相手AIで絞り込み:</label>
+                        <select id="filter-opponent-ai">
+                            <option value="all">すべて</option>
+                            </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-player-card">自分の手札で絞り込み:</label>
+                        <select id="filter-player-card">
+                            <option value="all">すべて</option>
+                            <option value="A">A (エース)</option>
+                            <option value="K">K (キング)</option>
+                            <option value="Q">Q (クイーン)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="summary-cards-container">
+                    <div class="summary-card">
+                        <h4>総ゲーム数</h4>
+                        <p id="stats-total-games">0</p>
+                    </div>
+                    <div class="summary-card">
+                        <h4>勝率</h4>
+                        <p id="stats-win-rate">0.00%</p>
+                    </div>
+                    <div class="summary-card">
+                        <h4>総収支</h4>
+                        <p id="stats-total-profit">0.00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h4>EV (期待値)</h4>
+                        <p id="stats-ev">0.00</p>
+                    </div>
+                </div>
+            
+                <div class="playstyle-analysis-container">
+                    <h3>あなたのプレイスタイル分析</h3>
+                    <div class="analysis-column">
+                        <div class="stat-item">
+                            <span>Aを持った時のベット率:</span>
+                            <strong id="stats-bet-rate-A">-.--%</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Kを持った時のベット率:</span>
+                            <strong id="stats-bet-rate-K">-.--%</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Qでのブラフベット率:</span>
+                            <strong id="stats-bet-rate-Q">-.--%</strong>
+                        </div>
+                    </div>
+                    <div class="analysis-column">
+                        <div class="stat-item">
+                            <span>相手のベットへのコール率:</span>
+                            <strong id="stats-call-rate-total">-.--%</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Aでコールする率:</span>
+                            <strong id="stats-call-rate-A">-.--%</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Kでコールする率:</span>
+                            <strong id="stats-call-rate-K">-.--%</strong>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="replay-container">
+                    <h3>ゲーム履歴 <button id="clear-stats-button" class="action-button" style="font-size:12px; padding: 5px 10px; background-color: #f44336;">履歴削除</button></h3>
+                    <ul id="replay-list">
+                        </ul>
+                </div>
+            </div>
+
+            <div id="simulator-screen" class="content-screen">
+                <h2>AI vs AI シミュレーター</h2>
+                <div class="simulator-controls">
+                    <div class="sim-player-control">
+                        <select id="sim-player1-ai"></select>
+                        <button id="sim-p1-settings-button" class="settings-button" disabled>設定</button>
+                    </div>
+                    <span>VS</span>
+                    <div class="sim-player-control">
+                        <select id="sim-player2-ai"></select>
+                        <button id="sim-p2-settings-button" class="settings-button" disabled>設定</button>
+                    </div>
+                    <div>
+                        <input type="number" id="sim-game-count" value="10000" min="1" max="100000">
+                        <span>ゲーム</span>
+                    </div>
+                    <button id="start-simulation-button" class="action-button">シミュレーション開始</button>
+                </div>
+                <div id="simulator-results" class="hidden">
+                    <h3>シミュレーション結果</h3>
+                    <div id="sim-result-text">
+                    </div>
+                    <canvas id="sim-ev-chart" style="margin-top: 20px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;"></canvas>
+                </div>
+                <div id="simulator-strategy-display">
+                    <div id="sim-p1-strategy-card" class="strategy-card"></div>
+                    <div id="sim-p2-strategy-card" class="strategy-card"></div>
+                </div>
+            </div>
+
+            <div id="player-settings-screen" class="settings-overlay"></div>
+            <div id="opponent-settings-screen" class="settings-overlay"></div>
+            <div id="sim-p1-settings-screen" class="settings-overlay"></div>
+            <div id="sim-p2-settings-screen" class="settings-overlay"></div>
+            <div id="strategy-details-overlay" class="settings-overlay"></div>
+        </main>
+
+        <div id="chat-box" style="position: fixed; bottom: 10px; right: 10px; width: 300px; background: #333; padding: 10px; border-radius: 8px; color: white; z-index: 1000;">
+            <ul id="messages" style="list-style-type: none; padding: 0; margin: 0; height: 150px; overflow-y: scroll; border: 1px solid #555; margin-bottom: 5px; background: #222;"></ul>
+            <form id="chat-form" action="">
+              <input id="chat-input" autocomplete="off" style="width: calc(100% - 70px); padding: 5px;" placeholder="メッセージを入力..." /><button style="width: 60px; padding: 5px;">送信</button>
+            </form>
+        </div>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="script.js"></script>
+
+    </div> </body>
+</html>
