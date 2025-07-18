@@ -3,28 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>クーン・ポーカー (AKQ) - 機能拡張版</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Kuhn Poker</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+    <body>
+    <div id="lobby-screen">
+        <h1>クーンポーカー</h1>
+        <p id="status-message">対戦モードを選択してください</p>
 
-    <div class="container">
-
-        <div class="nav-tabs">
-            <div class="nav-tab active" data-tab="game">ゲーム</div>
-            <div class="nav-tab" data-tab="stats">統計/リプレイ</div>
-            <div class="nav-tab" data-tab="simulator">AIシミュレーター</div>
+        <div id="mode-selection-area">
+            <div class="mode-selection">
+                <button id="random-match-button">ランダムマッチ</button>
+                <button id="friend-match-button">フレンドと対戦</button>
+            </div>
+            <div class="mode-selection" style="margin-top: 15px;">
+                <button id="find-ai-button">AIと対戦 (PvAI)</button>
+            </div>
         </div>
 
-        <main id="content-area">
-            <div id="lobby-screen" class="content-screen active" style="padding-top: 100px; text-align: center;">
-                <h1>クーンポーカー・オンライン</h1>
-                <button id="find-game-button" style="padding: 15px 40px; font-size: 20px; cursor: pointer;">対戦相手を探す</button>
-                <p id="status-message" style="margin-top: 20px; font-size: 16px; min-height: 24px;"></p>
+        <div id="friend-match-area" style="display: none;">
+            <h3>フレンドと対戦</h3>
+            <button id="create-room-button" class="action-button">部屋を新しく作る</button>
+            <hr style="width: 80%; border-color: rgba(255,215,0,0.3); margin: 20px auto;">
+            <div>
+                <p style="margin-bottom: 10px;">または、教えてもらった部屋IDを入力</p>
+                <input type="text" id="room-id-input" placeholder="部屋ID">
+                <button id="join-room-button" class="action-button">部屋に入る</button>
             </div>
+            <div id="room-info" style="margin-top: 20px; font-size: 1.2em;"></div>
             
-            <div id="main-game-container" class="content-screen">
+            <button id="back-to-mode-select-button" class="action-button" style="margin-top: 30px; background-color: #6c757d;">戻る</button>
+        </div>
+    </div>
+
+    <div id="matchmaking-screen" style="display: none;">
+        <h1>対戦相手を探しています...</h1>
+        <div class="spinner"></div>
+        <p>このままお待ちください</p>
+        <button id="cancel-matchmaking-button" class="action-button">キャンセル</button>
+    </div>
+
+    <div class="container" style="display: none;">
+        <nav class="nav-tabs">
+            <div class="nav-tab active" data-screen="main-game-screen">ゲーム</div>
+            <div class="nav-tab" data-screen="stats-hub-screen">統計</div>
+            <div class="nav-tab" data-screen="simulator-screen">シミュレーター</div>
+        </nav>
+
+        <main id="content-area">
+            
+            <div id="main-game-screen" class="content-screen active">
                 <div id="game-info">
                     <div id="player-ai-controls" class="ai-controls">
                         <label for="player-ai-type">あなた:</label>
@@ -61,14 +90,16 @@
                 <div id="game-table">
                     <h2>相手 (CPU)</h2>
                     <div class="info-area">チップ: <span id="opponent-chips">1</span></div>
-                    <div id="opponent-hand" class="card-area"></div>
+                    <div id="opponent-hand" class="card-area">
+                        </div>
                     <div id="pot-area">
                         <h3>ポット</h3>
                         <span id="pot-amount">0</span>
                     </div>
                     <h2>あなた</h2>
                     <div class="info-area">チップ: <span id="player-chips">1</span></div>
-                    <div id="player-hand" class="card-area"></div>
+                    <div id="player-hand" class="card-area">
+                        </div>
                     <div id="message-area">新しいゲームを開始します。</div>
                     <div id="actions">
                         <button id="bet-button">ベット (1)</button>
@@ -88,7 +119,7 @@
                         <label for="filter-opponent-ai">相手AIで絞り込み:</label>
                         <select id="filter-opponent-ai">
                             <option value="all">すべて</option>
-                            </select>
+                        </select>
                     </div>
                     <div class="filter-group">
                         <label for="filter-player-card">自分の手札で絞り込み:</label>
@@ -154,7 +185,7 @@
                 <div class="replay-container">
                     <h3>ゲーム履歴 <button id="clear-stats-button" class="action-button" style="font-size:12px; padding: 5px 10px; background-color: #f44336;">履歴削除</button></h3>
                     <ul id="replay-list">
-                        </ul>
+                    </ul>
                 </div>
             </div>
 
@@ -194,15 +225,10 @@
             <div id="sim-p2-settings-screen" class="settings-overlay"></div>
             <div id="strategy-details-overlay" class="settings-overlay"></div>
         </main>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
 
-        <div id="chat-box" style="position: fixed; bottom: 10px; right: 10px; width: 300px; background: #333; padding: 10px; border-radius: 8px; color: white; z-index: 1000;">
-            <ul id="messages" style="list-style-type: none; padding: 0; margin: 0; height: 150px; overflow-y: scroll; border: 1px solid #555; margin-bottom: 5px; background: #222;"></ul>
-            <form id="chat-form" action="">
-              <input id="chat-input" autocomplete="off" style="width: calc(100% - 70px); padding: 5px;" placeholder="メッセージを入力..." /><button style="width: 60px; padding: 5px;">送信</button>
-            </form>
-        </div>
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="script.js"></script>
-
-    </div> </body>
+</body>
 </html>
