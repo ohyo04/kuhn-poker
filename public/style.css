@@ -843,3 +843,57 @@ h3 {
     border-radius: 5px;
     min-height: 25px;
 }
+
+/* style.cssの一番下に追加 */
+
+/* 設定画面の背景オーバーレイ */
+.settings-overlay {
+    display: none; /* 普段は隠しておく */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* 半透明の黒 */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* 他の要素より手前に表示 */
+}
+
+/* ポップアップ本体 */
+.settings-modal-content {
+    background: #2c3e50;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    color: #ecf0f1;
+    border: 2px solid #3498db;
+}
+
+.settings-modal-content h3 {
+    margin-top: 0;
+    color: #3498db;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.settings-group input[type="range"] {
+    width: 80%;
+}
+
+.settings-buttons {
+    margin-top: 30px;
+    text-align: right;
+}
+
+.settings-buttons .action-button.cancel {
+    background-color: #6c757d;
+}

@@ -1,24 +1,18 @@
-// prisma/schema.prisma (修正版)
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 generator client {
   provider = "prisma-client-js"
 }
-
 model User {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  name      String   @unique
-  password  String   // ← この行が必要です
-
-  gamesWon  GameRecord[] @relation("Winner")
-  gamesLost GameRecord[] @relation("Loser")
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now())
+  name       String       @unique
+  password   String
+  gamesWon   GameRecord[] @relation("Winner")
+  gamesLost  GameRecord[] @relation("Loser")
 }
-
 model GameRecord {
   id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now())

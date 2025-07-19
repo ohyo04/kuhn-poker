@@ -14,14 +14,15 @@ const server = http.createServer(app);
 const io = new Server(server);
 const port = process.env.PORT || 3000;
 
-// Part 3: ミドルウェアと静的ファイル配信
+// Part 3: ミドルウェアとルート設定
 app.use(express.json());
 
+// ★★★ ルートURLの処理を、静的ファイル配信より「前」に書きます ★★★
 app.get('/', (req, res) => {
-    console.log("★★ルートURL ('/') へのアクセスを検知しました。login.html を送信します。★★");
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+// 静的ファイル配信 (ルートURL処理の「後」に置きます)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Part 4: ゲーム状態の管理
@@ -112,10 +113,15 @@ io.on('connection', (socket) => {
                 break;
         }
         if (!actionIsValid) return;
+
         player.hasActed = true;
         gameState.message = `${player.name}が${data.action}しました。`;
         gameState.actions.push(`${player.name}: ${data.action}`);
 
+        // ★★★ アクション直後にゲーム状態を更新・送信 ★★★
+        broadcastGameState(roomId);
+
+        // --- 以下、ラウンド終了の判定 ---
         const activePlayers = gameState.players.filter(p => !p.isFolded);
         if (activePlayers.length === 1) {
             await endRound(roomId, activePlayers[0], 'fold');
@@ -128,6 +134,7 @@ io.on('connection', (socket) => {
             } else {
                 gameState.turnIndex = (gameState.turnIndex + 1) % 2;
                 gameState.message = `${gameState.players[gameState.turnIndex].name}のターンです。`;
+                // ★ 次のプレイヤーのターンであることも送信
                 broadcastGameState(roomId);
             }
         }
@@ -164,30 +171,30 @@ async function endRound(roomId, winner, reason) {
     if (!loser) return;
 
     try {
-        const dummyPassword = await bcrypt.hash('default_password', 10);
-        const winnerRecord = await prisma.user.upsert({
-            where: { name: winner.name },
-            update: {},
-            create: { name: winner.name, password: dummyPassword },
-        });
-        const loserRecord = await prisma.user.upsert({
-            where: { name: loser.name },
-            update: {},
-            create: { name: loser.name, password: dummyPassword },
-        });
+        // データベースから勝者と敗者のユーザー情報を名前で検索
+        const winnerRecord = await prisma.user.findUnique({ where: { name: winner.name } });
+        const loserRecord = await prisma.user.findUnique({ where: { name: loser.name } });
 
-        await prisma.gameRecord.create({
-            data: {
-                winnerId: winnerRecord.id, loserId: loserRecord.id,
-                winnerHand: winner.hand[0] || '?', loserHand: loser.hand[0] || '?',
-                actions: gameState.actions.join(', ')
-            }
-        });
-        console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}`);
+        // ★両方のプレイヤーがデータベースに存在する場合のみ、戦績を記録する
+        if (winnerRecord && loserRecord) {
+            await prisma.gameRecord.create({
+                data: {
+                    winnerId: winnerRecord.id,
+                    loserId: loserRecord.id,
+                    winnerHand: winner.hand[0] || '?',
+                    loserHand: loser.hand[0] || '?',
+                    actions: gameState.actions.join(', ')
+                }
+            });
+            console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}`);
+        } else {
+            console.log("ゲスト同士の対戦、または未登録ユーザーが含まれるため、戦績は記録されませんでした。");
+        }
     } catch (error) {
         console.error("データベースへのゲーム履歴記録に失敗しました:", error);
     }
 
+    // ゲーム進行のロジックは変更なし
     winner.chips += gameState.pot;
     gameState.phase = reason;
     if (reason === 'fold') {
@@ -202,6 +209,7 @@ async function endRound(roomId, winner, reason) {
 function startNewRound(roomId) {
     const gameState = activeGames[roomId];
     if (!gameState || !gameState.players || gameState.players.length < 2) return;
+
     if (gameState.players.some(p => p.chips <= 0)) {
         io.to(roomId).emit('gameError', "チップがなくなりました。ゲーム終了。");
         delete activeGames[roomId];
@@ -212,12 +220,22 @@ function startNewRound(roomId) {
     const deck = shuffle(createDeck());
     gameState.isPlayerFirst = !gameState.isPlayerFirst;
     
+    // ★★★ ここからが新しいルールです ★★★
+    
+    // 1. 各プレイヤーの手持ちチップを「1」に設定
     gameState.players.forEach((p) => {
-        p.chips -= 1; p.hand = deal(deck, 1);
-        p.bet = 1; p.hasActed = false; p.isFolded = false;
+        p.chips = 1; // 手持ちチップを1にする
+        p.hand = deal(deck, 1);
+        p.bet = 0;   // このラウンドでまだ支払っていないのでベット額は「0」
+        p.hasActed = false;
+        p.isFolded = false;
     });
     
-    gameState.pot = 2;
+    // 2. ポットは最初から2チップで始まる
+    gameState.pot = 2; 
+    
+    // ★★★ ここまで ★★★
+    
     gameState.turnIndex = gameState.isPlayerFirst ? 0 : 1;
     gameState.phase = 'betting';
     gameState.message = `${gameState.players[gameState.turnIndex].name}のターンです。`;
@@ -232,7 +250,6 @@ app.post('/api/register', async (req, res) => {
         if (!name || !password) return res.status(400).json({ error: 'ユーザー名とパスワードは必須です。' });
         const existingUser = await prisma.user.findUnique({ where: { name } });
         if (existingUser) return res.status(400).json({ error: 'そのユーザー名は既に使用されています。' });
-        
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await prisma.user.create({
             data: { name: name, password: hashedPassword },
@@ -245,33 +262,24 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// --- ログインAPI ---
 app.post('/api/login', async (req, res) => {
     try {
         const { name, password } = req.body;
         if (!name || !password) {
             return res.status(400).json({ error: 'ユーザー名とパスワードは必須です。' });
         }
-
-        // 1. ユーザーを名前で検索
         const user = await prisma.user.findUnique({
             where: { name: name },
         });
         if (!user) {
-            // ★★★ ステータスコードを 404 に変更 ★★★
             return res.status(404).json({ error: 'ユーザーが存在しません。' });
         }
-
-        // 2. パスワードを比較
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).json({ error: 'ユーザー名またはパスワードが間違っています。' });
+            return res.status(401).json({ error: 'パスワードが間違っています。' });
         }
-
-        // 3. ログイン成功
         console.log(`ユーザーがログインしました: ${user.name}`);
         res.status(200).json({ message: 'ログインに成功しました。' });
-
     } catch (error) {
         console.error("ログイン中にエラーが発生しました:", error);
         res.status(500).json({ error: 'サーバー内部でエラーが発生しました。' });
@@ -296,5 +304,5 @@ app.get('/api/game-history', async (req, res) => {
 
 // Part 8: サーバーの起動
 server.listen(port, () => {
-  console.log(`サーバーが http://localhost:${port} で起動しました`);
+    console.log(`サーバーが http://localhost:${port} で起動しました`);
 });

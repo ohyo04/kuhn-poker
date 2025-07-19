@@ -230,5 +230,28 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 
+    <div id="custom-ai-settings-modal" class="settings-overlay">
+    <div class="settings-modal-content">
+        <h3>カスタムAIの戦略設定</h3>
+        <p>各状況でのAIの行動確率を調整します。</p>
+
+        <div class="settings-group">
+            <label for="custom-s1-q-bet">Q（最弱）で先にベットする確率（ブラフ率）:</label>
+            <input type="range" id="custom-s1-q-bet" min="0" max="100" value="33">
+            <span id="custom-s1-q-bet-value">33%</span>
+        </div>
+        
+        <div class="settings-group">
+            <label for="custom-s2-k-call">K（中間）で相手のベットにコールする確率:</label>
+            <input type="range" id="custom-s2-k-call" min="0" max="100" value="33">
+            <span id="custom-s2-k-call-value">33%</span>
+        </div>
+
+        <div class="settings-buttons">
+            <button id="save-custom-ai-button" class="action-button">保存</button>
+            <button id="close-custom-ai-button" class="action-button cancel">閉じる</button>
+        </div>
+    </div>
+    </div>
 </body>
 </html>
