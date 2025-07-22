@@ -10,17 +10,18 @@ model User {
   createdAt  DateTime     @default(now())
   name       String       @unique
   password   String
-  gamesWon   GameRecord[] @relation("Winner")
-  gamesLost  GameRecord[] @relation("Loser")
+  gamesWon   GameRecord[] @relation("WinnerGames")
+  gamesLost  GameRecord[] @relation("LoserGames")
 }
 model GameRecord {
   id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
-  winner     User     @relation("Winner", fields: [winnerId], references: [id])
   winnerId   Int
-  loser      User     @relation("Loser", fields: [loserId], references: [id])
   loserId    Int
   winnerHand String
   loserHand  String
   actions    String
+  roomId     String   // ← 追加
+  createdAt  DateTime @default(now())
+  winner     User     @relation("WinnerGames", fields: [winnerId], references: [id])
+  loser      User     @relation("LoserGames", fields: [loserId], references: [id])
 }

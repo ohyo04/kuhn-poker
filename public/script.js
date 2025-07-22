@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gto: { name: "GTO AI", s1_a_bet: 0.333, s1_k_bet: 0.0, s1_q_bet: 0.333, s1_a_call: 1.0, s1_k_call: 0.0, s1_q_call: 0.0, s2_a_bet: 1.0, s2_k_bet: 0.0, s2_q_bet: 0.333, s2_a_call: 1.0, s2_k_call: 0.333, s2_q_call: 0.0 },
         kensjitsu: { name: "堅実", s1_a_bet: 0.8, s1_k_bet: 0.0, s1_q_bet: 0.1, s1_a_call: 1.0, s1_k_call: 0.1, s1_q_call: 0.0, s2_a_bet: 1.0, s2_k_bet: 0.0, s2_q_bet: 0.1, s2_a_call: 1.0, s2_k_call: 0.2, s2_q_call: 0.0 },
         kiai: { name: "気合", s1_a_bet: 1.0, s1_k_bet: 0.8, s1_q_bet: 0.7, s1_a_call: 1.0, s1_k_call: 0.9, s1_q_call: 0.8, s2_a_bet: 1.0, s2_k_bet: 0.8, s2_q_bet: 0.7, s2_a_call: 1.0, s2_k_call: 0.9, s2_q_call: 0.8 },
-        custom: { name: "カスタムAI", s1_a_bet: 0.333, s1_k_bet: 0.0, s1_q_bet: 0.333, s1_a_call: 1.0, s1_k_call: 0.0, s1_q_call: 0.0, s2_a_bet: 1.0, s2_k_bet: 0.0, s2_q_bet: 0.333, s2_a_call: 1.0, s2_k_call: 0.333, s2_q_call: 0.0 },
     };
     
     // --- HTML要素の取得 ---
@@ -43,8 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
         roomInfo: document.getElementById('room-info'),
         playerAiTypeSelect: document.getElementById('player-ai-type'),
         opponentAiTypeSelect: document.getElementById('opponent-ai-type'),
-        playerAiSettingsButton: document.getElementById('open-player-settings-button'),
-        opponentAiSettingsButton: document.getElementById('open-opponent-settings-button'),
         simPlayer1Select: document.getElementById('sim-player1-ai'),
         simPlayer2Select: document.getElementById('sim-player2-ai'),
         startSimButton: document.getElementById('start-simulation-button'),
@@ -52,13 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
         simResultsDiv: document.getElementById('simulator-results'),
         simResultTextDiv: document.getElementById('sim-result-text'),
         replayList: document.getElementById('replay-list'),
-        customAiModal: document.getElementById('custom-ai-settings-modal'),
-        closeCustomAiButton: document.getElementById('close-custom-ai-button'),
-        saveCustomAiButton: document.getElementById('save-custom-ai-button'),
-        customS1QBetSlider: document.getElementById('custom-s1-q-bet'),
-        customS1QBetValue: document.getElementById('custom-s1-q-bet-value'),
-        customS2KCallSlider: document.getElementById('custom-s2-k-call'),
-        customS2KCallValue: document.getElementById('custom-s2-k-call-value'),
     };
 
     // --- イベントリスナー設定 ---
@@ -121,6 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.matchmakingScreen.style.display = 'none';
             elements.mainContainer.style.display = 'flex';
             renderOnlineGame(state);
+            // ラウンド終了時（betting以外のphase）に戦績を更新
+            if (state.phase !== 'betting') {
+                fetchAndShowRoomWinLose(state.roomId);
+            }
+            // fetchAndShowRoomGameHistory(state.roomId);
+            fetchAndShowRoomWinLose(state.roomId);
         });
     }
 
@@ -134,8 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderOnlineGame(state) {
         if (!state || !state.players) return;
         const ui = {
-            pName: document.querySelector('#player-ai-controls'),
-            oName: document.querySelector('#opponent-ai-controls'),
             pHand: document.getElementById('player-hand'),
             oHand: document.getElementById('opponent-hand'),
             pot: document.querySelector('#pot-area #pot-amount'),
@@ -147,22 +141,17 @@ document.addEventListener('DOMContentLoaded', () => {
             foldBtn: document.getElementById('fold-button'),
             newBtn: document.getElementById('new-game-button'),
         };
-        
-        ui.pName.querySelector('select').style.display = 'none';
-        ui.pName.querySelector('button').style.display = 'none';
-        ui.oName.querySelector('select').style.display = 'none';
-        ui.oName.querySelector('button').style.display = 'none';
 
         const me = state.players.find(p => p.id === socket.id);
         const opponent = state.players.find(p => p.id !== socket.id);
         if (!me || !opponent) return;
 
-        ui.pName.innerHTML = `<strong>あなた (${me.name})</strong><br>チップ: ${me.chips}`;
-        ui.oName.innerHTML = `<strong>相手 (${opponent.name})</strong><br>チップ: ${me.chips}`;
+        // 自分の手札は常に表向きで表示
         ui.pHand.innerHTML = `<div class="card">${me.hand[0]}</div>`;
-        
-        const oCardClass = (state.phase === 'showdown' || state.phase === 'fold') ? '' : 'facedown';
-        const oCardValue = (state.phase === 'showdown' || state.phase === 'fold') ? opponent.hand[0] : '';
+
+        // 相手の手札はフォールド時も裏向きで表示
+        const oCardClass = state.phase === 'fold' ? 'facedown' : '';
+        const oCardValue = state.phase === 'fold' ? '' : opponent.hand[0];
         ui.oHand.innerHTML = `<div class="card ${oCardClass}">${oCardValue}</div>`;
 
         ui.pot.textContent = state.pot;
@@ -181,6 +170,35 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.actions.classList.add('hidden');
         }
     }
+    
+    // 戦歴を取得して表示する関数
+    async function fetchAndShowGameHistory() {
+        console.log('★★ fetchAndShowGameHistory実行 ★★');
+        try {
+            const res = await fetch('/api/game-history');
+            const records = await res.json();
+            function normalizeName(name) {
+                return (name || '').trim().toLowerCase().replace(/\s/g, '').normalize('NFKC');
+            }
+            let myName = normalizeName(sessionStorage.getItem('loggedInUser'));
+            console.log('myName:', myName);
+            let winCount = 0, loseCount = 0;
+            records.forEach(r => {
+                const winnerName = normalizeName(r.winner.name);
+                const loserName = normalizeName(r.loser.name);
+                console.log('myName:', myName, 'winner:', winnerName, 'loser:', loserName);
+                if (winnerName === myName) winCount++;
+                if (loserName === myName) loseCount++;
+            });
+            document.getElementById('player-wins').textContent = winCount;
+            document.getElementById('opponent-wins').textContent = loseCount;
+        } catch (e) {
+            console.error('戦歴の取得に失敗しました', e);
+        }
+    }
+
+    // ページ表示時に戦歴を取得
+    fetchAndShowGameHistory();
     
     // オンライン用のアクションボタン設定
     document.getElementById('bet-button').onclick = () => socket && socket.emit('playerAction', { action: 'bet' });
@@ -214,8 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
             pEv: document.getElementById('player-ev'),
         };
 
-        let player = { name: 'あなた', type: 'human', chips: 1 };
-        let opponent = { name: '相手 (CPU)', type: 'kensjitsu', chips: 1 };
+        let player = { name: 'あなた', type: 'human', chips: 100 };
+        let opponent = { name: '相手 (CPU)', type: 'kensjitsu', chips: 100 };
         let pot = 0;
         let isPlayerTurn = true;
         let stats = { pWins: 0, oWins: 0, totalEv: 0, gamesPlayed: 0 };
@@ -223,14 +241,14 @@ document.addEventListener('DOMContentLoaded', () => {
         function startNewHand() {
             if (player.chips <= 0 || opponent.chips <= 0) {
                  ui.msg.textContent = "チップがなくなりました。新しいゲームを開始します。";
-                 Object.assign(player, { chips: 1 });
-                 Object.assign(opponent, { chips: 1 });
+                 Object.assign(player, { chips: 100 });
+                 Object.assign(opponent, { chips: 100 });
             }
             const deck = [...DECK].sort(() => Math.random() - 0.5);
             player.hand = deck.pop();
             opponent.hand = deck.pop();
-            // player.chips -= 1;
-            // opponent.chips -= 1;
+            player.chips -= 1;
+            opponent.chips -= 1;
             pot = 2;
             player.bet = 1;
             opponent.bet = 1;
@@ -284,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.msg.textContent = `${winner.name}の勝利！ ${pot}チップを獲得。`;
             updateUI();
             ui.actions.classList.add('hidden');
-            setTimeout(startNewHand, 2000);
+            ui.newBtn.classList.remove('hidden');
         }
 
         function getAIAction(ai, otherPlayer) {
@@ -322,60 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         offlineGameManager = { reset: startNewHand };
         startNewHand();
-
-        elements.playerAiSettingsButton.addEventListener('click', () => {
-            elements.customAiModal.style.display = 'flex'; // ポップアップを表示
-        });
-
-        // 相手側のボタンも同様に修正
-        elements.opponentAiSettingsButton.addEventListener('click', () => {
-            elements.customAiModal.style.display = 'flex'; // ポップアップを表示
-        });
-
-        elements.closeCustomAiButton.addEventListener('click', () => {
-            elements.customAiModal.style.display = 'none'; // ポップアップを非表示
-        });
-        // スライダーを動かした時にパーセント表示を更新する処理
-        elements.customS1QBetSlider.addEventListener('input', (event) => {
-            elements.customS1QBetValue.textContent = `${event.target.value}%`;
-        });
-        elements.customS2KCallSlider.addEventListener('input', (event) => {
-            elements.customS2KCallValue.textContent = `${event.target.value}%`;
-        });
-
-        // 設定パネルが開かれたときに、現在のカスタムAI設定をスライダーに反映する
-        function updateSettingsPanel() {
-            const currentSettings = aiProfiles.custom;
-            const s1q_bet_val = Math.round(currentSettings.s1_q_bet * 100);
-            const s2k_call_val = Math.round(currentSettings.s2_k_call * 100);
-
-            elements.customS1QBetSlider.value = s1q_bet_val;
-            elements.customS1QBetValue.textContent = `${s1q_bet_val}%`;
-            elements.customS2KCallSlider.value = s2k_call_val;
-            elements.customS2KCallValue.textContent = `${s2k_call_val}%`;
-        }
-
-        // 「設定」ボタンが押されたときの処理を修正（パネル表示の前に更新処理を挟む）
-        elements.playerAiSettingsButton.addEventListener('click', () => {
-            updateSettingsPanel(); // パネルを開く前に現在の設定を反映
-            elements.customAiModal.style.display = 'flex';
-        });
-        elements.opponentAiSettingsButton.addEventListener('click', () => {
-            updateSettingsPanel(); // パネルを開く前に現在の設定を反映
-            elements.customAiModal.style.display = 'flex';
-        });
-
-        // 「保存」ボタンが押されたときの処理
-        elements.saveCustomAiButton.addEventListener('click', () => {
-            // スライダーの値を取得して、aiProfiles.customを更新
-            aiProfiles.custom.s1_q_bet = parseInt(elements.customS1QBetSlider.value, 10) / 100;
-            aiProfiles.custom.s2_k_call = parseInt(elements.customS2KCallSlider.value, 10) / 100;
-
-            // ポップアップを閉じる
-            elements.customAiModal.style.display = 'none';
-            
-            alert('カスタムAIの設定を保存しました！');
-        });
     }
     
     function initializeSimulator() {
@@ -663,5 +627,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 showStrategyDetails(settings, settings.name);
             }
         });
+    }
+
+    async function fetchAndShowRoomGameHistory(roomId) {
+        const res = await fetch(`/api/game-history/${roomId}`);
+        const records = await res.json();
+        const list = document.getElementById('game-history-list');
+        if (!list) return;
+        list.innerHTML = '';
+        records.forEach(r => {
+            const li = document.createElement('li');
+            // アクション履歴を表示せず、勝者・手札・対戦者名のみ
+            li.textContent = `${r.winner.name}（${r.winnerHand}） vs ${r.loser.name}（${r.loserHand}） | 勝者: ${r.winner.name}`;
+            list.appendChild(li);
+        });
+    }
+
+    async function fetchAndShowRoomWinLose(roomId) {
+        const res = await fetch(`/api/game-history/${roomId}`);
+        const records = await res.json();
+        function normalizeName(name) {
+            return (name || '').trim().toLowerCase().replace(/\s/g, '').normalize('NFKC');
+        }
+        let myName = normalizeName(sessionStorage.getItem('loggedInUser'));
+        let winCount = 0, loseCount = 0;
+        records.forEach(r => {
+            const winnerName = normalizeName(r.winner.name);
+            const loserName = normalizeName(r.loser.name);
+            if (winnerName === myName) winCount++;
+            if (loserName === myName) loseCount++;
+        });
+        document.getElementById('player-wins').textContent = winCount;
+        document.getElementById('opponent-wins').textContent = loseCount;
     }
 });

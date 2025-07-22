@@ -170,51 +170,81 @@ async function endRound(roomId, winner, reason) {
     const loser = gameState.players.find(p => p.id !== winner.id);
     if (!loser) return;
 
-    try {
-        // データベースから勝者と敗者のユーザー情報を名前で検索
-        const winnerRecord = await prisma.user.findUnique({ where: { name: winner.name } });
-        const loserRecord = await prisma.user.findUnique({ where: { name: loser.name } });
-
-        // ★両方のプレイヤーがデータベースに存在する場合のみ、戦績を記録する
-        if (winnerRecord && loserRecord) {
-            await prisma.gameRecord.create({
-                data: {
-                    winnerId: winnerRecord.id,
-                    loserId: loserRecord.id,
-                    winnerHand: winner.hand[0] || '?',
-                    loserHand: loser.hand[0] || '?',
-                    actions: gameState.actions.join(', ')
-                }
-            });
-            console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}`);
-        } else {
-            console.log("ゲスト同士の対戦、または未登録ユーザーが含まれるため、戦績は記録されませんでした。");
-        }
-    } catch (error) {
-        console.error("データベースへのゲーム履歴記録に失敗しました:", error);
-    }
-
-    // ゲーム進行のロジックは変更なし
-    winner.chips += gameState.pot;
-    gameState.phase = reason;
+    // --- フォールド時の処理 ---
     if (reason === 'fold') {
+        // 勝者と敗者の手札をそれぞれ退避
+        const winnerHand = winner.hand[0] || '?';
+        const loserHand = loser.hand[0] || '?';
+
+        // ポットを勝者に渡す
+        winner.chips += gameState.pot;
+        gameState.phase = reason;
         gameState.message = `${loser.name}がフォールドしました。${winner.name}がポットを獲得。`;
+
+        // データベースに保存
+        try {
+            const winnerRecord = await prisma.user.findUnique({ where: { name: winner.name } });
+            const loserRecord = await prisma.user.findUnique({ where: { name: loser.name } });
+            if (winnerRecord && loserRecord) {
+                await prisma.gameRecord.create({
+                    data: {
+                        winnerId: winnerRecord.id,
+                        loserId: loserRecord.id,
+                        winnerHand: winnerHand, // 勝者の手札を保存
+                        loserHand: loserHand, // 敗者の手札を保存
+                        actions: gameState.actions.join(', '),
+                        roomId: roomId
+                    }
+                });
+                console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}`);
+            } else {
+                console.log("ゲスト同士の対戦、または未登録ユーザーが含まれるため、戦績は記録されませんでした。");
+            }
+        } catch (error) {
+            console.error("データベースへのゲーム履歴記録に失敗しました:", error);
+        }
+
+        // フォールド時は手札をそのまま保持（両方とも見える状態を維持）
+        // 勝者の手札も敗者の手札もそのまま保持する
     } else {
+        // ショーダウン時の処理（そのまま）
+        winner.chips += gameState.pot;
+        gameState.phase = reason;
         gameState.message = `${winner.name}が${winner.hand[0]}で勝利しました！`;
+
+        try {
+            const winnerRecord = await prisma.user.findUnique({ where: { name: winner.name } });
+            const loserRecord = await prisma.user.findUnique({ where: { name: loser.name } });
+            if (winnerRecord && loserRecord) {
+                await prisma.gameRecord.create({
+                    data: {
+                        winnerId: winnerRecord.id,
+                        loserId: loserRecord.id,
+                        winnerHand: winner.hand[0] || '?',
+                        loserHand: loser.hand[0] || '?',
+                        actions: gameState.actions.join(', '),
+                        roomId: roomId
+                    }
+                });
+                console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}`);
+            } else {
+                console.log("ゲスト同士の対戦、または未登録ユーザーが含まれるため、戦績は記録されませんでした。");
+            }
+        } catch (error) {
+            console.error("データベースへのゲーム履歴記録に失敗しました:", error);
+        }
     }
+
+    // ゲーム状態をクライアントに送信
     broadcastGameState(roomId);
-    setTimeout(() => startNewRound(roomId), 4000);
+
+    // 次のラウンドを開始
+    setTimeout(() => startNewRound(roomId), 3000);
 }
 
 function startNewRound(roomId) {
     const gameState = activeGames[roomId];
     if (!gameState || !gameState.players || gameState.players.length < 2) return;
-
-    if (gameState.players.some(p => p.chips <= 0)) {
-        io.to(roomId).emit('gameError', "チップがなくなりました。ゲーム終了。");
-        delete activeGames[roomId];
-        return;
-    }
 
     console.log(`${roomId}で新しいラウンドを開始します。`);
     const deck = shuffle(createDeck());
@@ -294,7 +324,23 @@ app.get('/api/game-history', async (req, res) => {
                 winner: { select: { name: true } },
                 loser: { select: { name: true } },
             },
-            take: 20,
+            // take: 20,
+        });
+        res.json(records);
+    } catch (error) {
+        res.status(500).json({ error: 'サーバーエラー' });
+    }
+});
+
+app.get('/api/game-history/:roomId', async (req, res) => {
+    try {
+        const records = await prisma.gameRecord.findMany({
+            where: { roomId: req.params.roomId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                winner: { select: { name: true } },
+                loser: { select: { name: true } },
+            },
         });
         res.json(records);
     } catch (error) {

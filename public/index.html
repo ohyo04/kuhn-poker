@@ -47,43 +47,17 @@
     <div class="container" style="display: none;">
         <nav class="nav-tabs">
             <div class="nav-tab active" data-screen="main-game-screen">ゲーム</div>
-            <div class="nav-tab" data-screen="stats-hub-screen">統計</div>
-            <div class="nav-tab" data-screen="simulator-screen">シミュレーター</div>
         </nav>
 
         <main id="content-area">
             
             <div id="main-game-screen" class="content-screen active">
                 <div id="game-info">
-                    <div id="player-ai-controls" class="ai-controls">
-                        <label for="player-ai-type">あなた:</label>
-                        <select id="player-ai-type">
-                            <option value="human" selected>人間</option>
-                            <option value="kensjitsu">堅実</option>
-                            <option value="kiai">気合太郎</option>
-                            <option value="mitaiman">フロップ見たいマン</option>
-                            <option value="tightaggressive">タイトアグレ</option>
-                            <option value="gto">GTO AI</option>
-                            <option value="custom">カスタムAI</option>
-                        </select>
-                        <button id="open-player-settings-button" class="settings-button">設定</button>
-                    </div>
+
                     <div id="scoreboard">
                         <strong>戦績</strong> | 
                         <span id="player-wins">0</span>勝 - <span id="opponent-wins">0</span>敗 |
-                        EV: <span id="player-ev">0.00</span>
-                    </div>
-                    <div id="opponent-ai-controls" class="ai-controls">
-                        <label for="opponent-ai-type">相手:</label>
-                        <select id="opponent-ai-type">
-                            <option value="kensjitsu" selected>堅実</option>
-                            <option value="kiai">気合太郎</option>
-                            <option value="mitaiman">フロップ見たいマン</option>
-                            <option value="tightaggressive">タイトアグレ</option>
-                            <option value="gto">GTO AI</option>
-                            <option value="custom">カスタムAI</option>
-                        </select>
-                        <button id="open-opponent-settings-button" class="settings-button">設定</button>
+                        <!-- EV: <span id="player-ev">0.00</span> -->
                     </div>
                 </div>
 
@@ -111,113 +85,7 @@
                 </div>
             </div>
 
-            <div id="stats-hub-screen" class="content-screen">
-                <h2>統計＆リプレイハブ</h2>
-            
-                <div class="stats-filter-container">
-                    <div class="filter-group">
-                        <label for="filter-opponent-ai">相手AIで絞り込み:</label>
-                        <select id="filter-opponent-ai">
-                            <option value="all">すべて</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="filter-player-card">自分の手札で絞り込み:</label>
-                        <select id="filter-player-card">
-                            <option value="all">すべて</option>
-                            <option value="A">A (エース)</option>
-                            <option value="K">K (キング)</option>
-                            <option value="Q">Q (クイーン)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="summary-cards-container">
-                    <div class="summary-card">
-                        <h4>総ゲーム数</h4>
-                        <p id="stats-total-games">0</p>
-                    </div>
-                    <div class="summary-card">
-                        <h4>勝率</h4>
-                        <p id="stats-win-rate">0.00%</p>
-                    </div>
-                    <div class="summary-card">
-                        <h4>総収支</h4>
-                        <p id="stats-total-profit">0.00</p>
-                    </div>
-                    <div class="summary-card">
-                        <h4>EV (期待値)</h4>
-                        <p id="stats-ev">0.00</p>
-                    </div>
-                </div>
-            
-                <div class="playstyle-analysis-container">
-                    <h3>あなたのプレイスタイル分析</h3>
-                    <div class="analysis-column">
-                        <div class="stat-item">
-                            <span>Aを持った時のベット率:</span>
-                            <strong id="stats-bet-rate-A">-.--%</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Kを持った時のベット率:</span>
-                            <strong id="stats-bet-rate-K">-.--%</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Qでのブラフベット率:</span>
-                            <strong id="stats-bet-rate-Q">-.--%</strong>
-                        </div>
-                    </div>
-                    <div class="analysis-column">
-                        <div class="stat-item">
-                            <span>相手のベットへのコール率:</span>
-                            <strong id="stats-call-rate-total">-.--%</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Aでコールする率:</span>
-                            <strong id="stats-call-rate-A">-.--%</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Kでコールする率:</span>
-                            <strong id="stats-call-rate-K">-.--%</strong>
-                        </div>
-                    </div>
-                </div>
-            
-                <div class="replay-container">
-                    <h3>ゲーム履歴 <button id="clear-stats-button" class="action-button" style="font-size:12px; padding: 5px 10px; background-color: #f44336;">履歴削除</button></h3>
-                    <ul id="replay-list">
-                    </ul>
-                </div>
-            </div>
 
-            <div id="simulator-screen" class="content-screen">
-                <h2>AI vs AI シミュレーター</h2>
-                <div class="simulator-controls">
-                    <div class="sim-player-control">
-                        <select id="sim-player1-ai"></select>
-                        <button id="sim-p1-settings-button" class="settings-button" disabled>設定</button>
-                    </div>
-                    <span>VS</span>
-                    <div class="sim-player-control">
-                        <select id="sim-player2-ai"></select>
-                        <button id="sim-p2-settings-button" class="settings-button" disabled>設定</button>
-                    </div>
-                    <div>
-                        <input type="number" id="sim-game-count" value="10000" min="1" max="100000">
-                        <span>ゲーム</span>
-                    </div>
-                    <button id="start-simulation-button" class="action-button">シミュレーション開始</button>
-                </div>
-                <div id="simulator-results" class="hidden">
-                    <h3>シミュレーション結果</h3>
-                    <div id="sim-result-text">
-                    </div>
-                    <canvas id="sim-ev-chart" style="margin-top: 20px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;"></canvas>
-                </div>
-                <div id="simulator-strategy-display">
-                    <div id="sim-p1-strategy-card" class="strategy-card"></div>
-                    <div id="sim-p2-strategy-card" class="strategy-card"></div>
-                </div>
-            </div>
 
             <div id="player-settings-screen" class="settings-overlay"></div>
             <div id="opponent-settings-screen" class="settings-overlay"></div>
@@ -226,32 +94,10 @@
             <div id="strategy-details-overlay" class="settings-overlay"></div>
         </main>
     </div>
+    <!-- <ul id="game-history-list"></ul> -->
     
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 
-    <div id="custom-ai-settings-modal" class="settings-overlay">
-    <div class="settings-modal-content">
-        <h3>カスタムAIの戦略設定</h3>
-        <p>各状況でのAIの行動確率を調整します。</p>
-
-        <div class="settings-group">
-            <label for="custom-s1-q-bet">Q（最弱）で先にベットする確率（ブラフ率）:</label>
-            <input type="range" id="custom-s1-q-bet" min="0" max="100" value="33">
-            <span id="custom-s1-q-bet-value">33%</span>
-        </div>
-        
-        <div class="settings-group">
-            <label for="custom-s2-k-call">K（中間）で相手のベットにコールする確率:</label>
-            <input type="range" id="custom-s2-k-call" min="0" max="100" value="33">
-            <span id="custom-s2-k-call-value">33%</span>
-        </div>
-
-        <div class="settings-buttons">
-            <button id="save-custom-ai-button" class="action-button">保存</button>
-            <button id="close-custom-ai-button" class="action-button cancel">閉じる</button>
-        </div>
-    </div>
-    </div>
 </body>
 </html>
