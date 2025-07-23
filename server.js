@@ -5,19 +5,6 @@ const http = require('http');
 const { Server } = require("socket.io");
 const bcrypt = require('bcrypt');
 const { createDeck, shuffle, deal, checkWinner } = require('./game-logic');
-
-// Prisma Clientの強制再生成
-const { execSync } = require('child_process');
-if (process.env.NODE_ENV === 'production') {
-    console.log('Production environment detected. Regenerating Prisma Client...');
-    try {
-        execSync('npx prisma generate --no-engine', { stdio: 'inherit' });
-        console.log('Prisma Client regenerated successfully');
-    } catch (error) {
-        console.error('Error regenerating Prisma Client:', error);
-    }
-}
-
 const { PrismaClient } = require('@prisma/client');
 const { Pool } = require('pg');
 const prisma = new PrismaClient();
