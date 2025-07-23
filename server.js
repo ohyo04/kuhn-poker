@@ -34,6 +34,19 @@ pool.query('SELECT NOW()', (err, res) => {
                 console.error('Error fetching tables:', err);
             } else {
                 console.log('Available tables:', res.rows.map(row => row.table_name));
+                
+                // GameRecordテーブルのカラム情報を取得
+                pool.query(`
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'GameRecord' AND table_schema = 'public'
+                `, (err, res) => {
+                    if (err) {
+                        console.error('Error fetching GameRecord columns:', err);
+                    } else {
+                        console.log('GameRecord columns:', res.rows);
+                    }
+                });
             }
         });
     }
