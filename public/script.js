@@ -149,8 +149,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 自分の手札は常に表向きで表示
         ui.pHand.innerHTML = `<div class="card">${me.hand[0]}</div>`;
 
-        // 相手の手札は常に裏向きで表示（ショーダウン以外）
-        ui.oHand.innerHTML = `<div class="card facedown"></div>`;
+        // 相手の手札表示ロジック
+        if (state.phase === 'showdown') {
+            // ショーダウン時（フォールド以外）は相手の手札をオープン
+            ui.oHand.innerHTML = `<div class="card">${opponent.hand[0]}</div>`;
+        } else {
+            // ベッティング中やフォールド時は相手の手札を隠す
+            ui.oHand.innerHTML = `<div class="card facedown"></div>`;
+        }
 
         ui.pot.textContent = state.pot;
         ui.msg.textContent = state.message;
@@ -259,39 +265,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (player.type !== 'human') handleAiTurn(player);
         }
 
-        function updateUI(state) {
-            // const player = state.players.find(p => p.id === socket.id);
-            // const opponentPlayer = state.players.find(p => p.id !== socket.id);
-
-            // 自分の手札表示
-            const playerCardContainer = document.getElementById('player-card');
-            playerCardContainer.innerHTML = '';
-            if (player) {
-                let playerCard = '?';
-                if (state.phase === 'showdown' && state.showdownHands) {
-                    playerCard = state.showdownHands[player.id] || '?';
-                } else if (player.hand && player.hand.length > 0) {
-                    playerCard = player.hand[0];
-                }
-                const playerCardDiv = createCardDiv(playerCard);
-                playerCardContainer.appendChild(playerCardDiv);
-                document.getElementById('player-name').textContent = player.name;
-                document.getElementById('player-chips').textContent = `チップ: ${player.chips}`;
-            }
-
-            // 相手プレイヤーのカード表示
-            const opponentCardContainer = document.getElementById('opponent-card');
-            opponentCardContainer.innerHTML = '';
-            if (opponentPlayer) {
-                let opponentCard = '?';
-                if (state.phase === 'showdown' && state.showdownHands) {
-                    opponentCard = state.showdownHands[opponentPlayer.id] || '?';
-                }
-                const opponentCardDiv = createCardDiv(opponentCard);
-                opponentCardContainer.appendChild(opponentCardDiv);
-                document.getElementById('opponent-name').textContent = opponentPlayer.name;
-                document.getElementById('opponent-chips').textContent = `チップ: ${opponentPlayer.chips}`;
-            }
+        function updateUI() {
+            ui.playerChips.textContent = player.chips;
+            ui.opponentChips.textContent = opponent.chips;
+            ui.pot.textContent = pot;
+            ui.pHand.innerHTML = `<div class="card">${player.hand}</div>`;
+            ui.oHand.innerHTML = `<div class="card facedown"></div>`;
+            ui.pWins.textContent = stats.pWins;
+            ui.oWins.textContent = stats.oWins;
+            ui.pEv.textContent = (stats.totalEv / (stats.gamesPlayed || 1)).toFixed(2);
 
             if (isPlayerTurn && player.type === 'human') {
                 const canCheck = player.bet === opponent.bet;
@@ -321,8 +303,11 @@ document.addEventListener('DOMContentLoaded', () => {
             stats.totalEv += profit;
             if (winner === player) { stats.pWins++; player.chips += pot; } else { stats.oWins++; opponent.chips += pot; }
             if (wasShowdown) {
-                // ショーダウン時は相手の手札を公開
+                // ショーダウン時（フォールド以外）は相手の手札を公開
                 ui.oHand.innerHTML = `<div class="card">${opponent.hand}</div>`;
+            } else {
+                // フォールド時は相手の手札を隠したまま
+                ui.oHand.innerHTML = `<div class="card facedown"></div>`;
             }
             ui.msg.textContent = `${winner.name}の勝利！ ${pot}チップを獲得。`;
             updateUI();
