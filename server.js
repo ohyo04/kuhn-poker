@@ -223,11 +223,11 @@ async function endRound(roomId, winner, reason) {
                         loserId: loserRecord.id,
                         winnerHand: winnerHand, // 勝者の手札を保存
                         loserHand: loserHand, // 敗者の手札を保存
-                        actions: gameState.actions.join(', '),
-                        roomId: roomId
+                        actions: gameState.actions.join(', ')
+                        // roomId: roomId // 一時的にコメントアウト
                     }
                 });
-                console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}`);
+                console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}, Room: ${roomId}`);
             } else {
                 console.log("ゲスト同士の対戦、または未登録ユーザーが含まれるため、戦績は記録されませんでした。");
             }
@@ -253,11 +253,11 @@ async function endRound(roomId, winner, reason) {
                         loserId: loserRecord.id,
                         winnerHand: winner.hand[0] || '?',
                         loserHand: loser.hand[0] || '?',
-                        actions: gameState.actions.join(', '),
-                        roomId: roomId
+                        actions: gameState.actions.join(', ')
+                        // roomId: roomId // 一時的にコメントアウト
                     }
                 });
-                console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}`);
+                console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}, Room: ${roomId}`);
             } else {
                 console.log("ゲスト同士の対戦、または未登録ユーザーが含まれるため、戦績は記録されませんでした。");
             }
