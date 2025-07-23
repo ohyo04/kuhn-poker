@@ -676,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         let myName = normalizeName(sessionStorage.getItem('loggedInUser'));
         let winCount = 0, loseCount = 0;
-        records.forEach r => {
+        records.forEach(r => {
             const winnerName = normalizeName(r.winner.name);
             const loserName = normalizeName(r.loser.name);
             if (winnerName === myName) winCount++;
