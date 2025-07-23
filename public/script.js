@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (screenId === 'simulator-screen') {
                 initializeSimulator();
             } else if (screenId === 'stats-hub-screen'){
-                loadAndDisplayGameHistory();
+                fetchAndShowGameHistory();
             }
         });
     }
@@ -195,8 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ページ表示時に戦歴を取得
-    fetchAndShowGameHistory();
+    // ページ表示時に戦歴を取得（オフラインモード時のみ）
+    // fetchAndShowGameHistory();
     
     // オンライン用のアクションボタン設定
     document.getElementById('bet-button').onclick = () => socket && socket.emit('playerAction', { action: 'bet' });
