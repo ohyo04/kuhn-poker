@@ -149,10 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 自分の手札は常に表向きで表示
         ui.pHand.innerHTML = `<div class="card">${me.hand[0]}</div>`;
 
-        // 相手の手札はフォールド時も裏向きで表示
-        const oCardClass = state.phase === 'fold' ? 'facedown' : '';
-        const oCardValue = state.phase === 'fold' ? '' : opponent.hand[0];
-        ui.oHand.innerHTML = `<div class="card ${oCardClass}">${oCardValue}</div>`;
+        // 相手の手札は常に裏向きで表示（ショーダウン以外）
+        ui.oHand.innerHTML = `<div class="card facedown"></div>`;
 
         ui.pot.textContent = state.pot;
         ui.msg.textContent = state.message;
@@ -298,7 +296,10 @@ document.addEventListener('DOMContentLoaded', () => {
             let profit = (winner === player) ? pot - player.bet : -player.bet;
             stats.totalEv += profit;
             if (winner === player) { stats.pWins++; player.chips += pot; } else { stats.oWins++; opponent.chips += pot; }
-            if (wasShowdown) ui.oHand.innerHTML = `<div class="card">${opponent.hand}</div>`;
+            if (wasShowdown) {
+                // ショーダウン時は相手の手札を公開
+                ui.oHand.innerHTML = `<div class="card">${opponent.hand}</div>`;
+            }
             ui.msg.textContent = `${winner.name}の勝利！ ${pot}チップを獲得。`;
             updateUI();
             ui.actions.classList.add('hidden');
