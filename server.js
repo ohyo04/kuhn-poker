@@ -6,7 +6,38 @@ const { Server } = require("socket.io");
 const bcrypt = require('bcrypt');
 const { createDeck, shuffle, deal, checkWinner } = require('./game-logic');
 const { PrismaClient } = require('@prisma/client');
+const { Pool } = require('pg');
 const prisma = new PrismaClient();
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// デバッグ用：接続先データベースを確認
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
+// 接続テスト
+pool.query('SELECT NOW()', (err, res) => {
+    if (err) {
+        console.error('Database connection error:', err);
+    } else {
+        console.log('Database connected successfully:', res.rows[0]);
+        
+        // テーブル一覧を取得
+        pool.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+        `, (err, res) => {
+            if (err) {
+                console.error('Error fetching tables:', err);
+            } else {
+                console.log('Available tables:', res.rows.map(row => row.table_name));
+            }
+        });
+    }
+});
 
 // Part 2: ExpressとSocket.IOの初期設定
 const app = express();
