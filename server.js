@@ -7,11 +7,41 @@ const bcrypt = require('bcrypt');
 const { createDeck, shuffle, deal, checkWinner } = require('./game-logic');
 const { PrismaClient } = require('@prisma/client');
 const { Pool } = require('pg');
-const prisma = new PrismaClient();
+
+// Prisma Clientの強制初期化
+console.log('Initializing Prisma Client...');
+const prisma = new PrismaClient({
+    log: ['query', 'info', 'warn', 'error'],
+});
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
+
+// Prisma Clientの接続確認とスキーマ同期確認
+async function initializePrisma() {
+    try {
+        await prisma.$connect();
+        console.log('Prisma Client connected successfully');
+        
+        // GameRecordモデルの情報を確認
+        const schema = await prisma.$queryRaw`
+            SELECT column_name, data_type, is_nullable 
+            FROM information_schema.columns 
+            WHERE table_name = 'GameRecord' 
+            ORDER BY ordinal_position;
+        `;
+        console.log('GameRecord schema:', schema);
+        
+        // roomIdフィールドの存在確認
+        const roomIdExists = schema.some(col => col.column_name === 'roomId');
+        console.log('roomId field exists in database:', roomIdExists);
+        
+    } catch (error) {
+        console.error('Prisma initialization error:', error);
+    }
+}
 
 // デバッグ用：接続先データベースを確認
 console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
@@ -230,17 +260,49 @@ async function endRound(roomId, winner, reason) {
             const winnerRecord = await prisma.user.findUnique({ where: { name: winner.name } });
             const loserRecord = await prisma.user.findUnique({ where: { name: loser.name } });
             if (winnerRecord && loserRecord) {
-                await prisma.gameRecord.create({
-                    data: {
-                        winnerId: winnerRecord.id,
-                        loserId: loserRecord.id,
-                        winnerHand: winnerHand, // 勝者の手札を保存
-                        loserHand: loserHand, // 敗者の手札を保存
-                        actions: gameState.actions.join(', '),
-                        roomId: roomId // roomIdフィールドを復活
-                    }
+                // Prisma Clientのモデル情報を確認
+                console.log('About to create gameRecord with data:', {
+                    winnerId: winnerRecord.id,
+                    loserId: loserRecord.id,
+                    winnerHand: winnerHand,
+                    loserHand: loserHand,
+                    actions: gameState.actions.join(', '),
+                    roomId: roomId
                 });
-                console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}, Room: ${roomId}`);
+                
+                try {
+                    await prisma.gameRecord.create({
+                        data: {
+                            winnerId: winnerRecord.id,
+                            loserId: loserRecord.id,
+                            winnerHand: winnerHand, // 勝者の手札を保存
+                            loserHand: loserHand, // 敗者の手札を保存
+                            actions: gameState.actions.join(', '),
+                            roomId: roomId // roomIdフィールドを復活
+                        }
+                    });
+                    console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}, Room: ${roomId}`);
+                } catch (createError) {
+                    console.error('gameRecord.create failed:', createError);
+                    console.error('Error details:', createError.message);
+                    
+                    // roomIdなしで作成を試行
+                    console.log('Attempting to create record without roomId...');
+                    try {
+                        await prisma.gameRecord.create({
+                            data: {
+                                winnerId: winnerRecord.id,
+                                loserId: loserRecord.id,
+                                winnerHand: winnerHand,
+                                loserHand: loserHand,
+                                actions: gameState.actions.join(', ')
+                            }
+                        });
+                        console.log('ゲーム履歴を記録しました (roomIdなし)');
+                    } catch (fallbackError) {
+                        console.error('Fallback record creation also failed:', fallbackError);
+                    }
+                }
             } else {
                 console.log("ゲスト同士の対戦、または未登録ユーザーが含まれるため、戦績は記録されませんでした。");
             }
@@ -395,6 +457,9 @@ app.get('/api/game-history/:roomId', async (req, res) => {
 });
 
 // Part 8: サーバーの起動
-server.listen(port, () => {
+server.listen(port, async () => {
     console.log(`サーバーが http://localhost:${port} で起動しました`);
+    
+    // Prisma Clientの初期化とスキーマ確認
+    await initializePrisma();
 });
