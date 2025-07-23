@@ -223,8 +223,8 @@ async function endRound(roomId, winner, reason) {
                         loserId: loserRecord.id,
                         winnerHand: winnerHand, // 勝者の手札を保存
                         loserHand: loserHand, // 敗者の手札を保存
-                        actions: gameState.actions.join(', ')
-                        // roomId: roomId // 一時的にコメントアウト
+                        actions: gameState.actions.join(', '),
+                        roomId: roomId // roomIdフィールドを復活
                     }
                 });
                 console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}, Room: ${roomId}`);
@@ -253,8 +253,8 @@ async function endRound(roomId, winner, reason) {
                         loserId: loserRecord.id,
                         winnerHand: winner.hand[0] || '?',
                         loserHand: loser.hand[0] || '?',
-                        actions: gameState.actions.join(', ')
-                        // roomId: roomId // 一時的にコメントアウト
+                        actions: gameState.actions.join(', '),
+                        roomId: roomId // roomIdフィールドを復活
                     }
                 });
                 console.log(`ゲーム履歴を記録しました: Winner: ${winner.name}, Loser: ${loser.name}, Room: ${roomId}`);
@@ -365,9 +365,9 @@ app.get('/api/game-history', async (req, res) => {
 
 app.get('/api/game-history/:roomId', async (req, res) => {
     try {
-        // roomIdフィールドが一時的に除去されているため、全体戦績を返す
+        // roomIdフィールドが復活したため、ルーム別戦績を返す
         const records = await prisma.gameRecord.findMany({
-            // where: { roomId: req.params.roomId }, // 一時的にコメントアウト
+            where: { roomId: req.params.roomId },
             orderBy: { createdAt: 'desc' },
             include: {
                 winner: { select: { name: true } },
@@ -376,6 +376,7 @@ app.get('/api/game-history/:roomId', async (req, res) => {
         });
         res.json(records);
     } catch (error) {
+        console.error('ルーム別戦績取得エラー:', error);
         res.status(500).json({ error: 'サーバーエラー' });
     }
 });

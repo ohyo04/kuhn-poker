@@ -24,7 +24,7 @@ model GameRecord {
   winnerHand String
   loserHand  String
   actions    String
-  // roomId     String  // 一時的にコメントアウト
+  roomId     String?
   loser      User     @relation("LoserGames", fields: [loserId], references: [id])
   winner     User     @relation("WinnerGames", fields: [winnerId], references: [id])
 }
