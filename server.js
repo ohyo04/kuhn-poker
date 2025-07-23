@@ -365,8 +365,9 @@ app.get('/api/game-history', async (req, res) => {
 
 app.get('/api/game-history/:roomId', async (req, res) => {
     try {
+        // roomIdフィールドが一時的に除去されているため、全体戦績を返す
         const records = await prisma.gameRecord.findMany({
-            where: { roomId: req.params.roomId },
+            // where: { roomId: req.params.roomId }, // 一時的にコメントアウト
             orderBy: { createdAt: 'desc' },
             include: {
                 winner: { select: { name: true } },
