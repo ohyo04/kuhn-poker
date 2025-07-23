@@ -259,15 +259,39 @@ document.addEventListener('DOMContentLoaded', () => {
             if (player.type !== 'human') handleAiTurn(player);
         }
 
-        function updateUI() {
-            ui.playerChips.textContent = player.chips;
-            ui.opponentChips.textContent = opponent.chips;
-            ui.pot.textContent = pot;
-            ui.pHand.innerHTML = `<div class="card">${player.hand}</div>`;
-            ui.oHand.innerHTML = `<div class="card facedown"></div>`;
-            ui.pWins.textContent = stats.pWins;
-            ui.oWins.textContent = stats.oWins;
-            ui.pEv.textContent = (stats.totalEv / (stats.gamesPlayed || 1)).toFixed(2);
+        function updateUI(state) {
+            // const player = state.players.find(p => p.id === socket.id);
+            // const opponentPlayer = state.players.find(p => p.id !== socket.id);
+
+            // 自分の手札表示
+            const playerCardContainer = document.getElementById('player-card');
+            playerCardContainer.innerHTML = '';
+            if (player) {
+                let playerCard = '?';
+                if (state.phase === 'showdown' && state.showdownHands) {
+                    playerCard = state.showdownHands[player.id] || '?';
+                } else if (player.hand && player.hand.length > 0) {
+                    playerCard = player.hand[0];
+                }
+                const playerCardDiv = createCardDiv(playerCard);
+                playerCardContainer.appendChild(playerCardDiv);
+                document.getElementById('player-name').textContent = player.name;
+                document.getElementById('player-chips').textContent = `チップ: ${player.chips}`;
+            }
+
+            // 相手プレイヤーのカード表示
+            const opponentCardContainer = document.getElementById('opponent-card');
+            opponentCardContainer.innerHTML = '';
+            if (opponentPlayer) {
+                let opponentCard = '?';
+                if (state.phase === 'showdown' && state.showdownHands) {
+                    opponentCard = state.showdownHands[opponentPlayer.id] || '?';
+                }
+                const opponentCardDiv = createCardDiv(opponentCard);
+                opponentCardContainer.appendChild(opponentCardDiv);
+                document.getElementById('opponent-name').textContent = opponentPlayer.name;
+                document.getElementById('opponent-chips').textContent = `チップ: ${opponentPlayer.chips}`;
+            }
 
             if (isPlayerTurn && player.type === 'human') {
                 const canCheck = player.bet === opponent.bet;
@@ -652,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         let myName = normalizeName(sessionStorage.getItem('loggedInUser'));
         let winCount = 0, loseCount = 0;
-        records.forEach(r => {
+        records.forEach r => {
             const winnerName = normalizeName(r.winner.name);
             const loserName = normalizeName(r.loser.name);
             if (winnerName === myName) winCount++;
